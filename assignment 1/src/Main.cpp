@@ -1,18 +1,25 @@
 // Image search with vector representations (assignment 1).
-// Step 4: read the parameters and the split, build (or load) the
-// vocabulary, and build the queries and the database of image vectors.
+// Step 5: read the parameters and the split, build (or load) the
+// vocabulary, build the queries and the database of image vectors, then
+// run the chosen search method, evaluate it and write the output file.
 // SIFT descriptors, vocabulary and vectors are all cached.
 
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
 #include "BowEncoder.h"
 #include "DescriptorCache.h"
+#include "Evaluator.h"
+#include "ExactSearch.h"
 #include "ImageDatabase.h"
+#include "MetricsSummary.h"
 #include "Parameters.h"
+#include "ResultWriter.h"
+#include "SearchMethod.h"
 #include "Split.h"
 #include "VectorCache.h"
 #include "Vocabulary.h"
@@ -83,6 +90,26 @@ static void checkVectors(const string& name, const vector<vector<float> >& vecto
            (double)nonZero / vectors.size(), minNonZero, maxNonZero);
 }
 
+// Creates the search method chosen on the command line
+static SearchMethod* createMethod(const Parameters& params) {
+    if (params.method == "exact") {
+        return new ExactSearch();
+    }
+    fprintf(stderr, "Error: method -%s is not implemented yet\n", params.method.c_str());
+    exit(1);
+}
+
+static void printSummaryHeader() {
+    printf("  %-13s %7s %10s %10s %8s %10s %12s\n",
+           "group", "queries", "Recall@5", "Recall@10", "mAP@10", "time (ms)", "< 10 results");
+}
+
+static void printSummary(const string& group, const MetricsSummary& summary) {
+    printf("  %-13s %7d %10.4f %10.4f %8.4f %10.4f %12d\n",
+           group.c_str(), summary.numQueries, summary.meanRecall5, summary.meanRecall10,
+           summary.map10, summary.averageTimeMs, summary.fewerThan10);
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         Parameters::printUsage(argv[0]);
@@ -129,5 +156,30 @@ int main(int argc, char* argv[]) {
     }
     checkVectors("queries", queryVectors);
     checkVectors("database", database.getVectors());
+
+    // Index of the chosen method (not part of the query time)
+    SearchMethod* method = createMethod(params);
+    printf("\n%s:\n", method->getName().c_str());
+    start = chrono::steady_clock::now();
+    method->build(database.getVectors());
+    printf("  index built in %.2f s\n", secondsSince(start));
+
+    // Queries: the time is measured only around search()
+    Evaluator evaluator(database);
+    for (int q = 0; q < database.getNumQueries(); q++) {
+        chrono::steady_clock::time_point queryStart = chrono::steady_clock::now();
+        vector<int> ranking = method->search(database.getQueryVector(q), 10);
+        double timeMs = secondsSince(queryStart) * 1000.0;
+        evaluator.addQuery(q, ranking, timeMs);
+    }
+
+    ResultWriter::write(params.outputFile, method->getName(), database, evaluator);
+    printf("  results written to %s\n\n", params.outputFile.c_str());
+    printSummaryHeader();
+    printSummary("all", evaluator.getSummary("all"));
+    printSummary("illumination", evaluator.getSummary("illumination"));
+    printSummary("viewpoint", evaluator.getSummary("viewpoint"));
+
+    delete method;
     return 0;
 }

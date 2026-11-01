@@ -13,6 +13,10 @@
 #   - range and average of the center values (SIFT values are 0..255)
 #   - length (Euclidean norm) of the centers: min, max, average
 
+# Work from the folder of this script (code/), so it can be started from
+# anywhere. Paths given as arguments are relative to code/.
+cd "$(dirname "$0")" || exit 1
+
 # Decimal point, not comma: with a Greek locale od prints "194,3" and awk
 # would not read it as a number.
 export LC_ALL=C

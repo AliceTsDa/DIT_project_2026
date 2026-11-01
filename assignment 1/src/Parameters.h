@@ -54,6 +54,7 @@ public:
     static void printUsage(const char* programName);
 
 private:
+    void useProgramFolder(const std::string& programPath);
     void findMethod(int argc, char* argv[]);
     void parseFlag(const std::string& flag, const std::string& value);
     void validate() const;

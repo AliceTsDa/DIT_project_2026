@@ -13,6 +13,10 @@
 #   status: OK, MISSING or DAMAGED
 # and a summary at the end.
 
+# Work from the folder of this script (code/), so it can be started from
+# anywhere. Paths given as arguments are relative to code/.
+cd "$(dirname "$0")" || exit 1
+
 CACHE_DIR=${1:-cache}
 SPLIT_FILE=${2:-split.txt}
 NUM_MIR=${3:-25000}

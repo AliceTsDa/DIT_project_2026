@@ -36,6 +36,11 @@ Parameters::Parameters() {
 }
 
 void Parameters::parse(int argc, char* argv[]) {
+    // The default paths are relative to the program's folder, so that
+    // e.g. "./code/search" also works from the assignment folder.
+    // Paths given with flags stay relative to the current folder.
+    useProgramFolder(argv[0]);
+
     // First pass: find the method, because -w and -M mean different
     // things for different methods.
     findMethod(argc, argv);
@@ -57,6 +62,23 @@ void Parameters::parse(int argc, char* argv[]) {
     }
 
     validate();
+}
+
+void Parameters::useProgramFolder(const string& programPath) {
+    // "./code/search" -> "./code/",  "./search" or "search" -> nothing to add
+    size_t slash = programPath.rfind('/');
+    if (slash == string::npos) {
+        return;
+    }
+    string folder = programPath.substr(0, slash + 1);
+    if (folder == "./") {
+        return;
+    }
+    hpPath = folder + hpPath;
+    mirPath = folder + mirPath;
+    splitFile = folder + splitFile;
+    outputFile = folder + outputFile;
+    cacheDir = folder + cacheDir;
 }
 
 void Parameters::findMethod(int argc, char* argv[]) {

@@ -1,0 +1,6 @@
+Exact Search, K = 256, S = 500, seed = 1
+set             D db size |  Recall@5 Recall@10   mAP@10 time (ms) | mAP illu mAP view
+validation   1000    1115 |    0.7739    0.8348   0.8000    0.3036 |   0.7574   0.8392
+validation   5000    5115 |    0.7652    0.8174   0.7840    1.5937 |   0.7278   0.8354
+validation  10000   10115 |    0.7391    0.8174   0.7732    2.8455 |   0.7085   0.8324
+validation  25000   25100 |    0.7391    0.7478   0.7324    6.6682 |   0.6573   0.8012

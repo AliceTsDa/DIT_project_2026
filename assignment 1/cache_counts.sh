@@ -12,6 +12,10 @@
 # "od" turns them into numbers. (It does not check if files are damaged;
 # use check_cache.sh for that.)
 
+# Work from the folder of this script (code/), so it can be started from
+# anywhere. Paths given as arguments are relative to code/.
+cd "$(dirname "$0")" || exit 1
+
 CACHE_DIR=${1:-cache}
 
 if [ ! -d "$CACHE_DIR" ]; then
@@ -19,8 +23,8 @@ if [ ! -d "$CACHE_DIR" ]; then
     exit 1
 fi
 
-# All cache files, in natural order (im2 before im10)
-mapfile -t files < <(find "$CACHE_DIR" -name '*.bin' | sort -V)
+# All descriptor files (not vectors/ or vocab/), in natural order (im2 before im10)
+mapfile -t files < <(find "$CACHE_DIR/hpatches" "$CACHE_DIR/mirflickr" -maxdepth 1 -name '*.bin' | sort -V)
 
 if [ ${#files[@]} -eq 0 ]; then
     echo "No cache files in $CACHE_DIR"

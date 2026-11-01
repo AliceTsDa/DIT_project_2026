@@ -22,6 +22,9 @@ public:
     // Copies descriptor i into a float vector of size DIM
     std::vector<float> getDescriptor(int i) const;
 
+    // Same, but into an existing vector (faster in loops: no new vector)
+    void copyDescriptor(int i, std::vector<float>& result) const;
+
     void clear();
 
     // Appends one descriptor (DIM values, each 0..255)

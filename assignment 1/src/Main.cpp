@@ -1,123 +1,26 @@
 // Image search with vector representations (assignment 1).
-// Step 3: read the parameters and the split, get the SIFT descriptors
-// of every image the run needs (cached) and build the vocabulary (cached).
+// Step 4: read the parameters and the split, build (or load) the
+// vocabulary, and build the queries and the database of image vectors.
+// SIFT descriptors, vocabulary and vectors are all cached.
 
 #include <chrono>
+#include <cmath>
 #include <cstdio>
-#include <cstdlib>
 #include <string>
 #include <vector>
 
+#include "BowEncoder.h"
 #include "DescriptorCache.h"
-#include "DescriptorSet.h"
-#include "GroupStats.h"
+#include "ImageDatabase.h"
 #include "Parameters.h"
 #include "Split.h"
+#include "VectorCache.h"
 #include "Vocabulary.h"
 
 using namespace std;
 
-static void resetStats(GroupStats& stats) {
-    stats.images = 0;
-    stats.descriptors = 0;
-    stats.minDescriptors = 0;
-    stats.maxDescriptors = 0;
-}
-
-static void addToStats(GroupStats& stats, int count) {
-    if (stats.images == 0 || count < stats.minDescriptors) {
-        stats.minDescriptors = count;
-    }
-    if (stats.images == 0 || count > stats.maxDescriptors) {
-        stats.maxDescriptors = count;
-    }
-    stats.images++;
-    stats.descriptors += count;
-}
-
-static void printStats(const string& name, const GroupStats& stats) {
-    double average = 0;
-    if (stats.images > 0) {
-        average = (double)stats.descriptors / stats.images;
-    }
-    printf("  %-22s images %6d  descriptors %10ld  per image: avg %7.1f min %5d max %5d\n",
-           name.c_str(), stats.images, stats.descriptors, average,
-           stats.minDescriptors, stats.maxDescriptors);
-}
-
 static double secondsSince(chrono::steady_clock::time_point start) {
     return chrono::duration<double>(chrono::steady_clock::now() - start).count();
-}
-
-// Gets the descriptors of all 6 images of every sequence of one split part
-static void loadHpatchesPart(const Parameters& params, const Split& split, const string& part,
-                             DescriptorCache& cache) {
-    GroupStats stats;
-    resetStats(stats);
-    DescriptorSet descriptors;
-
-    for (const auto& sequence : split.getSequences(part)) {
-        for (int n = 1; n <= 6; n++) {
-            string imagePath = params.hpPath + "/" + sequence + "/" + to_string(n) + ".ppm";
-            string cacheName = "hpatches/" + sequence + "_" + to_string(n);
-            if (!cache.getDescriptors(cacheName, imagePath, descriptors)) {
-                fprintf(stderr, "Error: cannot read image %s\n", imagePath.c_str());
-                exit(1);
-            }
-            addToStats(stats, descriptors.getCount());
-        }
-    }
-    printStats("HPatches " + part, stats);
-}
-
-// Gets the descriptors of the first D MIRFlickr images that have at least
-// one descriptor (im1.jpg, im2.jpg, ...). Returns the chosen file names.
-static vector<string> loadMirflickr(const Parameters& params, DescriptorCache& cache) {
-    vector<string> chosen;
-    vector<string> skipped;
-    GroupStats stats;
-    resetStats(stats);
-    DescriptorSet descriptors;
-    chrono::steady_clock::time_point start = chrono::steady_clock::now();
-
-    int number = 1;
-    while ((int)chosen.size() < params.numMirflickr) {
-        string fileName = "im" + to_string(number) + ".jpg";
-        string imagePath = params.mirPath + "/" + fileName;
-        string cacheName = "mirflickr/im" + to_string(number);
-        if (!cache.getDescriptors(cacheName, imagePath, descriptors)) {
-            if (number == 1) {
-                fprintf(stderr, "Error: cannot read image %s\n", imagePath.c_str());
-                exit(1);
-            }
-            // No more images: some images had no descriptors, so fewer than
-            // D usable images exist (e.g. D = 25000). Use all of them.
-            fprintf(stderr, "Warning: only %d usable MIRFlickr images exist, asked for %d\n",
-                    (int)chosen.size(), params.numMirflickr);
-            break;
-        }
-
-        if (descriptors.getCount() == 0) {
-            skipped.push_back(fileName);
-        } else {
-            chosen.push_back(fileName);
-            addToStats(stats, descriptors.getCount());
-        }
-
-        if (number % 1000 == 0) {
-            printf("  ... MIRFlickr image %d, %.0f s\n", number, secondsSince(start));
-            fflush(stdout);
-        }
-        number++;
-    }
-
-    printStats("MIRFlickr", stats);
-    printf("  MIRFlickr images without descriptors (skipped): %d", (int)skipped.size());
-    for (const auto& name : skipped) {
-        printf(" %s", name.c_str());
-    }
-    printf("\n");
-    return chosen;
 }
 
 // Smallest, largest and average cluster, and how many are empty
@@ -142,6 +45,44 @@ static void printClusterSizes(const vector<int>& sizes) {
            smallest, largest, (double)total / sizes.size(), empty);
 }
 
+// Checks that every vector has values >= 0 that sum to 1, and prints how
+// many of its K values are non-zero (how many different visual words).
+static void checkVectors(const string& name, const vector<vector<float> >& vectors) {
+    double worstSumError = 0;
+    int negative = 0;
+    long nonZero = 0;
+    int minNonZero = 0;
+    int maxNonZero = 0;
+
+    for (int i = 0; i < (int)vectors.size(); i++) {
+        double sum = 0;
+        int count = 0;
+        for (const auto& value : vectors[i]) {
+            sum += value;
+            if (value < 0) {
+                negative++;
+            }
+            if (value > 0) {
+                count++;
+            }
+        }
+        if (fabs(sum - 1.0) > worstSumError) {
+            worstSumError = fabs(sum - 1.0);
+        }
+        if (i == 0 || count < minNonZero) {
+            minNonZero = count;
+        }
+        if (i == 0 || count > maxNonZero) {
+            maxNonZero = count;
+        }
+        nonZero += count;
+    }
+
+    printf("  %-9s %6d vectors: |sum - 1| <= %.1e, negative values %d, non-zero words avg %.1f (min %d, max %d)\n",
+           name.c_str(), (int)vectors.size(), worstSumError, negative,
+           (double)nonZero / vectors.size(), minNonZero, maxNonZero);
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         Parameters::printUsage(argv[0]);
@@ -153,32 +94,40 @@ int main(int argc, char* argv[]) {
     params.print();
 
     Split split(params.splitFile);
-    printf("\nSplit: train %d, validation %d, test %d sequences\n",
-           (int)split.getSequences("train").size(),
-           (int)split.getSequences("validation").size(),
-           (int)split.getSequences("test").size());
-
-    // SIFT descriptors of every image this run needs
-    printf("\nSIFT descriptors (cache: %s):\n", params.cacheDir.c_str());
-    chrono::steady_clock::time_point start = chrono::steady_clock::now();
-    DescriptorCache cache(params.cacheDir);
-
-    loadHpatchesPart(params, split, "train", cache);
-    loadHpatchesPart(params, split, params.querySet, cache);
-    vector<string> mirflickrImages = loadMirflickr(params, cache);
-
-    printf("  images read from cache: %d, extracted now: %d, time %.1f s\n",
-           cache.getNumFromCache(), cache.getNumExtracted(), secondsSince(start));
+    DescriptorCache descriptorCache(params.cacheDir);
 
     // Visual vocabulary: K centers from the training descriptors
     printf("\nVocabulary (K = %d, S = %d, seed = %d):\n",
            params.vocabSize, params.maxSiftPerImage, params.seed);
-    start = chrono::steady_clock::now();
+    chrono::steady_clock::time_point start = chrono::steady_clock::now();
     Vocabulary vocabulary;
-    vocabulary.loadOrBuild(params, split, cache);
+    vocabulary.loadOrBuild(params, split, descriptorCache);
     printf("  %d centers, time %.1f s\n", vocabulary.getSize(), secondsSince(start));
     if (!vocabulary.wasLoadedFromCache()) {
         printClusterSizes(vocabulary.getClusterSizes());
     }
+
+    // Queries and database of image vectors
+    printf("\nImage vectors (set %s, D = %d):\n", params.querySet.c_str(), params.numMirflickr);
+    start = chrono::steady_clock::now();
+    BowEncoder encoder(vocabulary);
+    VectorCache vectorCache(params, descriptorCache, encoder);
+    ImageDatabase database;
+    database.build(params, split, vectorCache);
+
+    printf("  queries:  %d\n", database.getNumQueries());
+    printf("  database: %d images (%d HPatches + %d MIRFlickr)\n",
+           database.getSize(), database.getNumHpatches(), database.getNumMirflickr());
+    printf("  MIRFlickr images skipped (no descriptors): %d\n",
+           (int)database.getSkippedMirflickr().size());
+    printf("  vectors read from cache: %d, computed now: %d, time %.1f s\n",
+           vectorCache.getNumFromCache(), vectorCache.getNumComputed(), secondsSince(start));
+
+    vector<vector<float> > queryVectors;
+    for (int q = 0; q < database.getNumQueries(); q++) {
+        queryVectors.push_back(database.getQueryVector(q));
+    }
+    checkVectors("queries", queryVectors);
+    checkVectors("database", database.getVectors());
     return 0;
 }

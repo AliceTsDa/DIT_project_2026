@@ -18,10 +18,15 @@ int DescriptorSet::getValue(int i, int j) const {
 
 vector<float> DescriptorSet::getDescriptor(int i) const {
     vector<float> result(DIM);
+    copyDescriptor(i, result);
+    return result;
+}
+
+void DescriptorSet::copyDescriptor(int i, vector<float>& result) const {
+    result.resize(DIM);
     for (int j = 0; j < DIM; j++) {
         result[j] = data[i * DIM + j];
     }
-    return result;
 }
 
 void DescriptorSet::clear() {

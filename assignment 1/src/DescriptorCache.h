@@ -29,6 +29,4 @@ private:
     SiftExtractor extractor;
     int numFromCache;
     int numExtracted;
-
-    static void makeDirectory(const std::string& path);
 };

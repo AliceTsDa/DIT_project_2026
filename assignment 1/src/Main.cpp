@@ -1,6 +1,6 @@
 // Image search with vector representations (assignment 1).
-// Step 2: read the parameters and the split, then get the SIFT descriptors
-// of every image the run needs (extracted once, then read from the cache).
+// Step 3: read the parameters and the split, get the SIFT descriptors
+// of every image the run needs (cached) and build the vocabulary (cached).
 
 #include <chrono>
 #include <cstdio>
@@ -13,6 +13,7 @@
 #include "GroupStats.h"
 #include "Parameters.h"
 #include "Split.h"
+#include "Vocabulary.h"
 
 using namespace std;
 
@@ -119,6 +120,28 @@ static vector<string> loadMirflickr(const Parameters& params, DescriptorCache& c
     return chosen;
 }
 
+// Smallest, largest and average cluster, and how many are empty
+static void printClusterSizes(const vector<int>& sizes) {
+    int smallest = sizes[0];
+    int largest = sizes[0];
+    int empty = 0;
+    long total = 0;
+    for (const auto& size : sizes) {
+        if (size < smallest) {
+            smallest = size;
+        }
+        if (size > largest) {
+            largest = size;
+        }
+        if (size == 0) {
+            empty++;
+        }
+        total += size;
+    }
+    printf("  cluster sizes: min %d, max %d, avg %.1f, empty %d\n",
+           smallest, largest, (double)total / sizes.size(), empty);
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         Parameters::printUsage(argv[0]);
@@ -146,5 +169,16 @@ int main(int argc, char* argv[]) {
 
     printf("  images read from cache: %d, extracted now: %d, time %.1f s\n",
            cache.getNumFromCache(), cache.getNumExtracted(), secondsSince(start));
+
+    // Visual vocabulary: K centers from the training descriptors
+    printf("\nVocabulary (K = %d, S = %d, seed = %d):\n",
+           params.vocabSize, params.maxSiftPerImage, params.seed);
+    start = chrono::steady_clock::now();
+    Vocabulary vocabulary;
+    vocabulary.loadOrBuild(params, split, cache);
+    printf("  %d centers, time %.1f s\n", vocabulary.getSize(), secondsSince(start));
+    if (!vocabulary.wasLoadedFromCache()) {
+        printClusterSizes(vocabulary.getClusterSizes());
+    }
     return 0;
 }

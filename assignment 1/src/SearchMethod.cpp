@@ -7,12 +7,27 @@
 
 using namespace std;
 
+SearchMethod::SearchMethod() {
+    totalCandidates = 0;
+    numSearches = 0;
+}
+
 SearchMethod::~SearchMethod() {
+}
+
+double SearchMethod::getAverageCandidates() const {
+    if (numSearches == 0) {
+        return 0;
+    }
+    return (double)totalCandidates / numSearches;
 }
 
 vector<int> SearchMethod::rankCandidates(const vector<vector<float> >& vectors,
                                          const vector<float>& query,
                                          const vector<int>& candidates, int topN) {
+    totalCandidates += (long)candidates.size();
+    numSearches++;
+
     // (squared distance, index): pairs sort by distance, then by index
     vector<pair<float, int> > scored;
     for (const auto& index : candidates) {

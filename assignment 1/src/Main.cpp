@@ -15,6 +15,7 @@
 #include "DescriptorCache.h"
 #include "Evaluator.h"
 #include "ExactSearch.h"
+#include "IvfFlatSearch.h"
 #include "ImageDatabase.h"
 #include "MetricsSummary.h"
 #include "Parameters.h"
@@ -94,6 +95,9 @@ static void checkVectors(const string& name, const vector<vector<float> >& vecto
 static SearchMethod* createMethod(const Parameters& params) {
     if (params.method == "exact") {
         return new ExactSearch();
+    }
+    if (params.method == "ivfflat") {
+        return new IvfFlatSearch(params.ivfClusters, params.ivfProbe, params.seed);
     }
     fprintf(stderr, "Error: method -%s is not implemented yet\n", params.method.c_str());
     exit(1);
@@ -179,6 +183,9 @@ int main(int argc, char* argv[]) {
     printSummary("all", evaluator.getSummary("all"));
     printSummary("illumination", evaluator.getSummary("illumination"));
     printSummary("viewpoint", evaluator.getSummary("viewpoint"));
+    printf("  compared vectors per query: %.1f of %d (%.1f%%)\n",
+           method->getAverageCandidates(), database.getSize(),
+           100.0 * method->getAverageCandidates() / database.getSize());
 
     delete method;
     return 0;

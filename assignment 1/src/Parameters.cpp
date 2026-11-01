@@ -9,7 +9,7 @@ Parameters::Parameters() {
     hpPath = "datasets/hpatches-sequences-release";
     mirPath = "datasets/mirflickr";
     splitFile = "split.txt";
-    outputFile = "output.txt";
+    outputFile = "output/output.txt";
     querySet = "validation";
     cacheDir = "cache";
     vocabSize = 256;

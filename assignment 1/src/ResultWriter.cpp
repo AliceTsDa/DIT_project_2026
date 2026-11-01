@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "FileUtils.h"
 #include "MetricsSummary.h"
 #include "QueryResult.h"
 
@@ -10,6 +11,7 @@ using namespace std;
 
 void ResultWriter::write(const string& fileName, const string& methodName,
                          const ImageDatabase& database, const Evaluator& evaluator) {
+    makeFolderOf(fileName);  // e.g. creates "output/" for "output/exact.txt"
     FILE* file = fopen(fileName.c_str(), "w");
     if (file == NULL) {
         fprintf(stderr, "Error: cannot write output file %s\n", fileName.c_str());

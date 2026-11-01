@@ -15,6 +15,14 @@ void makeDirectory(const string& path) {
     }
 }
 
+void makeFolderOf(const string& fileName) {
+    size_t slash = fileName.rfind('/');
+    if (slash == string::npos || slash == 0) {
+        return;  // file in the current folder (or directly in "/")
+    }
+    makeDirectory(fileName.substr(0, slash));
+}
+
 string tempFileName(const string& fileName) {
     return fileName + ".tmp";
 }

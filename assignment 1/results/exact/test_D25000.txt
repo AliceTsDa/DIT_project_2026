@@ -347,4 +347,4 @@ AP@10: 1.000000
 Mean Recall@5: 0.669565
 Mean Recall@10: 0.730435
 mAP@10: 0.683737
-Average query time: 6.955535
+Average query time: 6.717242

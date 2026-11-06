@@ -22,6 +22,7 @@ Parameters::Parameters() {
     lshK = 4;
     lshL = 5;
     lshW = 0.05;
+    lshMaxCandidates = 0;
 
     cubeDim = 10;
     cubeW = 0.05;
@@ -117,6 +118,7 @@ void Parameters::parseFlag(const string& flag, const string& value) {
         if (flag == "-k") { lshK = toInt(flag, value); return; }
         if (flag == "-L") { lshL = toInt(flag, value); return; }
         if (flag == "-w") { lshW = toDouble(flag, value); return; }
+        if (flag == "-maxcand") { lshMaxCandidates = toInt(flag, value); return; }
     }
     if (method == "hypercube") {
         if (flag == "-kproj") { cubeDim = toInt(flag, value); return; }
@@ -151,6 +153,7 @@ void Parameters::validate() const {
         if (lshK < 1) { fprintf(stderr, "Error: -k must be >= 1\n"); ok = false; }
         if (lshL < 1) { fprintf(stderr, "Error: -L must be >= 1\n"); ok = false; }
         if (lshW <= 0) { fprintf(stderr, "Error: -w must be > 0\n"); ok = false; }
+        if (lshMaxCandidates < 0) { fprintf(stderr, "Error: -maxcand must be >= 0\n"); ok = false; }
     }
     if (method == "hypercube") {
         if (cubeDim < 1 || cubeDim > 30) { fprintf(stderr, "Error: -kproj must be 1..30\n"); ok = false; }
@@ -196,6 +199,11 @@ void Parameters::print() const {
         printf("  -k      %d\n", lshK);
         printf("  -L      %d\n", lshL);
         printf("  -w      %g\n", lshW);
+        if (lshMaxCandidates == 0) {
+            printf("  -maxcand no limit\n");
+        } else {
+            printf("  -maxcand %d\n", lshMaxCandidates);
+        }
     }
     if (method == "hypercube") {
         printf("  -kproj  %d\n", cubeDim);
@@ -224,7 +232,7 @@ void Parameters::printUsage(const char* programName) {
     printf("  -vocab <int> -S <int> -D <int> -seed <int> -cache <dir>\n");
     printf("Methods and their flags:\n");
     printf("  -exact\n");
-    printf("  -lsh       -k <int> -L <int> -w <double>\n");
+    printf("  -lsh       -k <int> -L <int> -w <double> [-maxcand <int>]\n");
     printf("  -hypercube -kproj <int> -w <double> -M <int> -probes <int>\n");
     printf("  -ivfflat   -kclusters <int> -nprobe <int>\n");
     printf("  -ivfpq     -kclusters <int> -nprobe <int> -M <int> -nbits <int>\n");

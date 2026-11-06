@@ -6,10 +6,11 @@
 
 using namespace std;
 
-LshSearch::LshSearch(int k, int L, double w, int seed) {
+LshSearch::LshSearch(int k, int L, double w, int maxCandidates, int seed) {
     this->k = k;
     this->numTables = L;
     this->w = w;
+    this->maxCandidates = maxCandidates;
     this->seed = seed;
     data = NULL;
     searchNumber = 0;
@@ -55,17 +56,21 @@ void LshSearch::build(const vector<vector<float> >& vectors) {
 vector<int> LshSearch::search(const vector<float>& query, int topN) {
     searchNumber++;
 
+    vector<int> candidates;
     vector<int> found;
     for (const auto& table : tables) {
+        found.clear();
         table.addCandidates(query, found);
-    }
 
-    // keep every vector once
-    vector<int> candidates;
-    for (const auto& index : found) {
-        if (lastSeen[index] != searchNumber) {
-            lastSeen[index] = searchNumber;
-            candidates.push_back(index);
+        // keep every vector once; stop early if there is a limit
+        for (const auto& index : found) {
+            if (lastSeen[index] != searchNumber) {
+                lastSeen[index] = searchNumber;
+                candidates.push_back(index);
+                if (maxCandidates > 0 && (int)candidates.size() >= maxCandidates) {
+                    return rankCandidates(*data, query, candidates, topN);
+                }
+            }
         }
     }
     return rankCandidates(*data, query, candidates, topN);

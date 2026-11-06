@@ -98,7 +98,7 @@ static SearchMethod* createMethod(const Parameters& params) {
         return new ExactSearch();
     }
     if (params.method == "lsh") {
-        return new LshSearch(params.lshK, params.lshL, params.lshW, params.seed);
+        return new LshSearch(params.lshK, params.lshL, params.lshW, params.lshMaxCandidates, params.seed);
     }
     if (params.method == "ivfflat") {
         return new IvfFlatSearch(params.ivfClusters, params.ivfProbe, params.seed);

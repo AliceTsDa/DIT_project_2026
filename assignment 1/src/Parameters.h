@@ -26,6 +26,7 @@ public:
     int lshK;                // -k
     int lshL;                // -L
     double lshW;             // -w
+    int lshMaxCandidates;    // -maxcand (our extra flag, 0 = no limit)
 
     // Hypercube
     int cubeDim;             // -kproj

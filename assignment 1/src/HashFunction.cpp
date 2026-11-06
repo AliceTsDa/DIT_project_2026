@@ -1,5 +1,6 @@
 #include "HashFunction.h"
 
+#include <climits>
 #include <cmath>
 
 using namespace std;
@@ -22,5 +23,15 @@ int HashFunction::compute(const vector<float>& x) const {
     for (int i = 0; i < (int)v.size(); i++) {
         dot += x[i] * v[i];
     }
-    return (int)floor((dot + t) / w);
+    double cell = floor((dot + t) / w);
+
+    // Only a tiny w could give a cell number outside the int range;
+    // keep it inside so the conversion to int is always valid.
+    if (cell > INT_MAX) {
+        cell = INT_MAX;
+    }
+    if (cell < INT_MIN) {
+        cell = INT_MIN;
+    }
+    return (int)cell;
 }

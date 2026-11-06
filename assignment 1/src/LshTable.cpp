@@ -38,16 +38,23 @@ int LshTable::countNonEmptyBuckets() const {
     return count;
 }
 
-// (sum of r_i * h_i) mod M, keeping every step in [0, M).
-// h_i can be negative, so it is first moved into [0, M).
+// (sum of r_i * h_i) mod M, using (a + b) mod M = ((a mod M) + (b mod M)) mod M
+// and keeping every value in [0, M), so nothing overflows a long long:
+//  - h_i is an int, so |h_i| < 2^31 < M: "h mod M" is h, or h + M if h < 0
+//  - r_i < 2^31 and h < M < 2^32, so r_i * h < 2^63
+//  - sum < M and term < M, so sum + term < 2M: one subtraction is enough
 long long LshTable::computeId(const vector<float>& x) const {
     long long sum = 0;
     for (int i = 0; i < (int)functions.size(); i++) {
-        long long h = functions[i].compute(x) % M;
+        long long h = functions[i].compute(x);
         if (h < 0) {
             h += M;
         }
-        sum = (sum + (r[i] * h) % M) % M;
+        long long term = (r[i] * h) % M;
+        sum += term;
+        if (sum >= M) {
+            sum -= M;
+        }
     }
     return sum;
 }

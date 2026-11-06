@@ -133,6 +133,10 @@ int main(int argc, char* argv[]) {
     params.parse(argc, argv);
     params.print();
 
+    // Created first, so a method that is not available stops the program
+    // before the (possibly long) loading of the data
+    SearchMethod* method = createMethod(params);
+
     Split split(params.splitFile);
     DescriptorCache descriptorCache(params.cacheDir);
 
@@ -171,7 +175,6 @@ int main(int argc, char* argv[]) {
     checkVectors("database", database.getVectors());
 
     // Index of the chosen method (not part of the query time)
-    SearchMethod* method = createMethod(params);
     printf("\n%s:\n", method->getName().c_str());
     start = chrono::steady_clock::now();
     method->build(database.getVectors());

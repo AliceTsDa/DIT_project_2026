@@ -16,6 +16,7 @@
 #include "Evaluator.h"
 #include "ExactSearch.h"
 #include "IvfFlatSearch.h"
+#include "LshSearch.h"
 #include "ImageDatabase.h"
 #include "MetricsSummary.h"
 #include "Parameters.h"
@@ -95,6 +96,9 @@ static void checkVectors(const string& name, const vector<vector<float> >& vecto
 static SearchMethod* createMethod(const Parameters& params) {
     if (params.method == "exact") {
         return new ExactSearch();
+    }
+    if (params.method == "lsh") {
+        return new LshSearch(params.lshK, params.lshL, params.lshW, params.seed);
     }
     if (params.method == "ivfflat") {
         return new IvfFlatSearch(params.ivfClusters, params.ivfProbe, params.seed);

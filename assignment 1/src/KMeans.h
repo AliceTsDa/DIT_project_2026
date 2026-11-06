@@ -4,7 +4,7 @@
 #include <vector>
 
 // K-means clustering (Lloyd's algorithm) with k-means++ initialisation.
-// Used for the SIFT vocabulary, and later for the IVF and PQ indexes.
+// Used for the SIFT vocabulary and for the IVFFlat index.
 //
 // Stops after maxIterations, or earlier when fewer than 0.1% of the points
 // change cluster in an iteration.

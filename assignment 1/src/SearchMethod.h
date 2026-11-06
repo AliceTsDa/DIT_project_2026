@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-// Base class of all search methods (Exact, LSH, Hypercube, IVFFlat, IVFPQ).
+// Base class of the search methods (Exact, LSH, Hypercube, IVFFlat).
 //
 // Usage: build() once with the database vectors (index construction, not
 // timed), then search() for every query (timed).

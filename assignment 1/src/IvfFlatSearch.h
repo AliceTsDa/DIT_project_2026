@@ -32,7 +32,7 @@ protected:
     std::vector<std::vector<float> > centroids;
     std::vector<std::vector<int> > lists;           // lists[c] = vectors of cluster c
 
-    // Builds centroids and lists (also used by IVFPQ)
+    // Builds centroids and lists (kept separate so an IVFPQ could reuse it)
     void buildLists(const std::vector<std::vector<float> >& vectors);
 
     // The nprobe centroids closest to the query, closest first

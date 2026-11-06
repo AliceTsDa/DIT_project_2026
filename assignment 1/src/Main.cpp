@@ -15,6 +15,7 @@
 #include "DescriptorCache.h"
 #include "Evaluator.h"
 #include "ExactSearch.h"
+#include "HypercubeSearch.h"
 #include "IvfFlatSearch.h"
 #include "LshSearch.h"
 #include "ImageDatabase.h"
@@ -99,6 +100,10 @@ static SearchMethod* createMethod(const Parameters& params) {
     }
     if (params.method == "lsh") {
         return new LshSearch(params.lshK, params.lshL, params.lshW, params.lshMaxCandidates, params.seed);
+    }
+    if (params.method == "hypercube") {
+        return new HypercubeSearch(params.cubeDim, params.cubeW, params.cubeMaxCandidates,
+                                   params.cubeProbes, params.seed);
     }
     if (params.method == "ivfflat") {
         return new IvfFlatSearch(params.ivfClusters, params.ivfProbe, params.seed);
